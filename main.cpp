@@ -147,6 +147,10 @@ int main(int, char**)
 
 	//Init all the device properties
 	setup_devices();
+	//Probe for known usb devices
+	int _dev = device_probe();
+	if (_dev >= 0)
+		driver_indicator = _dev;
 
 	// Main loop
 #ifdef __EMSCRIPTEN__
@@ -212,7 +216,7 @@ int main(int, char**)
 					ImGui::BeginGroup();
 					if (i == 0)
 						ImGui::SetCursorPosY(3);
-					ImGui::Text((std::string("Mic ")+std::to_string(i+1)).c_str());
+					ImGui::Text("%s",(std::string("Mic ")+std::to_string(i+1)).c_str());
 					ImGui::Dummy(ImVec2(0,24));
 					if (ImGui::VFaderFloat((std::to_string(i)+"##vMic").c_str(), ImVec2(42, absY/1.8), &bar_value[i], 0.0f, 1.0f, "%.2f")) {
 						if (connected)
@@ -229,7 +233,7 @@ int main(int, char**)
 				}
 				for (size_t i = 0; i < (devices[driver_indicator].digital_inputs); i++) {
 					ImGui::BeginGroup();
-					ImGui::Text((std::string("Digi ")+std::to_string(i+1)).c_str());
+					ImGui::Text("%s", (std::string("Digi ")+std::to_string(i+1)).c_str());
 					ImGui::Dummy(ImVec2(0,24));
 					if (ImGui::VFaderFloat((std::to_string(i)+"##vDigi").c_str(), ImVec2(42, absY/1.8), &bar_value[i], 0.0f, 1.0f, "%.2f")) {
 						if (connected)
@@ -247,7 +251,8 @@ int main(int, char**)
 
 				ImGui::EndChild();
 			}
-			//ImGui::SetCursorPosY(absY*0.95);
+			ImGui::SetCursorPosY(absY*0.965);
+			ImGui::Text(VERSION_MIXID);
 			//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 			ImGui::End();
 
@@ -414,6 +419,7 @@ int main(int, char**)
 	EMSCRIPTEN_MAINLOOP_END;
 #endif
 
+	driver_shutdown(); //just in case disconnect
 	// Cleanup
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
