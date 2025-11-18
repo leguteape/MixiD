@@ -237,7 +237,7 @@ int main(int, char**)
 					ImGui::Dummy(ImVec2(0,24));
 					if (ImGui::VFaderFloat((std::to_string(i)+"##vDigi").c_str(), ImVec2(42, absY/1.8), &bar_value[i], 0.0f, 1.0f, "%.2f")) {
 						if (connected)
-							set_channel_volume(i, bar_value[i]);
+							set_channel_volume(i, bar_value[inputcounter]);
 					};
 					inputcounter++;
 					ImGui::Dummy(ImVec2(0,32));
