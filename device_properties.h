@@ -18,6 +18,15 @@ static std::vector<device_properties> devices;
 
 void setup_devices()
 {
+	struct device_properties iD4MKII;
+	iD4MKII.name = "iD4 MKII";
+	iD4MKII.usb_id = 0x0009;
+	iD4MKII.mic_inputs = 1;
+	iD4MKII.digital_inputs = 0;
+	iD4MKII.outputs = 2;
+	iD4MKII.digital_outputs = 0;
+	devices.push_back(iD4MKII);
+
 	struct device_properties iD14;
 	iD14.name = "iD14";
 	iD14.usb_id = 0x0002;
@@ -65,7 +74,6 @@ void setup_devices()
 	iD48.digital_outputs = 16;
 	iD48.inserts = 8;
 	devices.push_back(iD48);
-
 }
 
 #endif

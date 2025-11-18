@@ -32,15 +32,9 @@
 
 static int driver_indicator = 0;
 static bool connected = false;
-const char* items[] = { "iD14 MKII", "iD14", "iD22", "iD44", "iD48"};
-std::vector<uint16_t> usb_id = { 0x0008, 0x0002, 0x0001, 0x0005, 0x0012};
 std::vector<float> levels = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
-static int inputs = 10;
-std::vector <std::string> inputlist = {"Mic 1", "Mic 2", "Digi 1", "Digi 2", "Digi 3", "Digi 4", "Digi 5", "Digi 6", "Digi 7", "Digi 8"};
-//static int outputs = 6;
 std::vector <float> bar_value;
 static bool phase_value[10] = {false,false,false,false,false,false,false,false,false,false};
-
 static bool master_bools[6] = {false,false,false,false,false,false}; // Dummy storage selection storage
 
 static void glfw_error_callback(int error, const char* description)
@@ -204,34 +198,52 @@ int main(int, char**)
 
 			if (connected || test) { //Main controls
 				if (bar_value.size() == 0) {
-					for (size_t i = 0; i < (inputs); i++)
+					for (size_t i = 0; i < devices[driver_indicator].mic_inputs; i++)
+						bar_value.push_back(0.0f);
+					for (size_t i = 0; i < devices[driver_indicator].digital_inputs; i++)
 						bar_value.push_back(0.0f);
 				}
 				ImGui::SetNextWindowPos(ImVec2(140,140));
 				ImGui::BeginChild("Faders");
 				ImVec2 ogpos = ImGui::GetCursorPos();
-				for (size_t i = 0; i < (inputs); i++) {
+				int inputcounter = 0;
+				for (size_t i = 0; i < (devices[driver_indicator].mic_inputs); i++) {
 					ImGui::BeginGroup();
 					if (i == 0)
 						ImGui::SetCursorPosY(3);
-					ImGui::Text(inputlist[i].c_str());
+					ImGui::Text((std::string("Mic ")+std::to_string(i+1)).c_str());
 					ImGui::Dummy(ImVec2(0,24));
-					if (ImGui::VFaderFloat((std::to_string(i)+"##v").c_str(), ImVec2(42, absY/1.8), &bar_value[i], 0.0f, 1.0f, "%.2f")) {
-						//set_vinyl_dm(bar_value[i]);
+					if (ImGui::VFaderFloat((std::to_string(i)+"##vMic").c_str(), ImVec2(42, absY/1.8), &bar_value[i], 0.0f, 1.0f, "%.2f")) {
 						if (connected)
-							set_channel_volume(i, bar_value[i]);
+							set_channel_volume(i, bar_value[inputcounter]);
 					};
+					inputcounter++;
 					ImGui::Dummy(ImVec2(0,32));
 					ImGui::PushFont(audiofont, 32);
 					//if (toggleButton("Dim", ImVec2((absX*0.2)*0.3, 40), master_bools[0])) { if (connected) {set_bool_state(0);}};
-					if (toggleButton("###"+std::to_string(i), ImVec2(0,0), phase_value[i])) {if (connected) set_phase_state(i);};
+					if (toggleButton("###Mic"+std::to_string(i), ImVec2(0,0), phase_value[i])) {if (connected) set_phase_state(i);};
 					ImGui::PopFont();
 					ImGui::EndGroup();
-					//if (i == inputs)
-					//	ImGui::Text("Outputs");
-					if (i < (inputs)-1)
+					ImGui::SameLine();
+				}
+				for (size_t i = 0; i < (devices[driver_indicator].digital_inputs); i++) {
+					ImGui::BeginGroup();
+					ImGui::Text((std::string("Digi ")+std::to_string(i+1)).c_str());
+					ImGui::Dummy(ImVec2(0,24));
+					if (ImGui::VFaderFloat((std::to_string(i)+"##vDigi").c_str(), ImVec2(42, absY/1.8), &bar_value[i], 0.0f, 1.0f, "%.2f")) {
+						if (connected)
+							set_channel_volume(i, bar_value[i]);
+					};
+					inputcounter++;
+					ImGui::Dummy(ImVec2(0,32));
+					ImGui::PushFont(audiofont, 32);
+					if (toggleButton("###Digi"+std::to_string(i), ImVec2(0,0), phase_value[i])) {if (connected) set_phase_state(i);};
+					ImGui::PopFont();
+					ImGui::EndGroup();
+					if (i < (devices[driver_indicator].digital_inputs)-1)
 						ImGui::SameLine();
 				}
+
 				ImGui::EndChild();
 			}
 			//ImGui::SetCursorPosY(absY*0.95);
@@ -322,8 +334,10 @@ int main(int, char**)
 	            for (int n = 0; n < devices.size(); n++)
 	            {
 	                const bool is_selected = (driver_indicator == n);
-	                if (ImGui::Selectable(devices[n].name.c_str(), is_selected))
+	                if (ImGui::Selectable(devices[n].name.c_str(), is_selected)) {
 	                    driver_indicator = n;
+	                    bar_value.clear();
+	                }
 
 	                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 	                if (is_selected)
