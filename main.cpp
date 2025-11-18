@@ -203,8 +203,9 @@ int main(int, char**)
 					for (size_t i = 0; i < devices[driver_indicator].digital_inputs; i++)
 						bar_value.push_back(0.0f);
 				}
-				ImGui::SetNextWindowPos(ImVec2(140,140));
-				ImGui::BeginChild("Faders");
+				ImGui::SetNextWindowPos(ImVec2(absX*0.1,absY*0.1));
+				ImGui::SetNextWindowSize(ImVec2(absX*0.6, absY*0.8));
+				ImGui::BeginChild("Faders", ImVec2(0,0),0,ImGuiWindowFlags_HorizontalScrollbar);
 				ImVec2 ogpos = ImGui::GetCursorPos();
 				int inputcounter = 0;
 				for (size_t i = 0; i < (devices[driver_indicator].mic_inputs); i++) {
