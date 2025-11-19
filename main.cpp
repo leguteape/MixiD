@@ -32,15 +32,9 @@
 
 static int driver_indicator = 0;
 static bool connected = false;
-const char* items[] = { "iD14 MKII", "iD14", "iD44"};
-std::vector<uint16_t> usb_id = { 0x0008, 0x0002, 0x0005};
 std::vector<float> levels = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
-static int inputs = 10;
-std::vector <std::string> inputlist = {"Mic 1", "Mic 2", "Digi 1", "Digi 2", "Digi 3", "Digi 4", "Digi 5", "Digi 6", "Digi 7", "Digi 8"};
-//static int outputs = 6;
 std::vector <float> bar_value;
 static bool phase_value[10] = {false,false,false,false,false,false,false,false,false,false};
-
 static bool master_bools[6] = {false,false,false,false,false,false}; // Dummy storage selection storage
 
 static void glfw_error_callback(int error, const char* description)
@@ -101,7 +95,7 @@ int main(int, char**)
 
 	// Create window with graphics context
 	float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
-	GLFWwindow* window = glfwCreateWindow((int)(1280 * main_scale), (int)(800 * main_scale), "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow((int)(1280 * main_scale), (int)(800 * main_scale), "MixiD - Open Source Audient mixer for Linux", nullptr, nullptr);
 	if (window == nullptr)
 		return 1;
 
@@ -150,6 +144,13 @@ int main(int, char**)
 	bool show_routing = false;
 	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+	//Init all the device properties
+	setup_devices();
+	//Probe for known usb devices
+	int _dev = device_probe();
+	if (_dev >= 0)
+		driver_indicator = _dev;
 
 	// Main loop
 #ifdef __EMSCRIPTEN__
@@ -201,37 +202,57 @@ int main(int, char**)
 
 			if (connected || test) { //Main controls
 				if (bar_value.size() == 0) {
-					for (size_t i = 0; i < (inputs); i++)
+					for (size_t i = 0; i < devices[driver_indicator].mic_inputs; i++)
+						bar_value.push_back(0.0f);
+					for (size_t i = 0; i < devices[driver_indicator].digital_inputs; i++)
 						bar_value.push_back(0.0f);
 				}
-				ImGui::SetNextWindowPos(ImVec2(140,140));
-				ImGui::BeginChild("Faders");
+				ImGui::SetNextWindowPos(ImVec2(absX*0.1,absY*0.1));
+				ImGui::SetNextWindowSize(ImVec2(absX*0.6, absY*0.8));
+				ImGui::BeginChild("Faders", ImVec2(0,0),0,ImGuiWindowFlags_HorizontalScrollbar);
 				ImVec2 ogpos = ImGui::GetCursorPos();
-				for (size_t i = 0; i < (inputs); i++) {
+				int inputcounter = 0;
+				for (size_t i = 0; i < (devices[driver_indicator].mic_inputs); i++) {
 					ImGui::BeginGroup();
 					if (i == 0)
 						ImGui::SetCursorPosY(3);
-					ImGui::Text(inputlist[i].c_str());
+					ImGui::Text("%s",(std::string("Mic ")+std::to_string(i+1)).c_str());
 					ImGui::Dummy(ImVec2(0,24));
-					if (ImGui::VFaderFloat((std::to_string(i)+"##v").c_str(), ImVec2(42, absY/1.8), &bar_value[i], 0.0f, 1.0f, "%.2f")) {
-						//set_vinyl_dm(bar_value[i]);
+					if (ImGui::VFaderFloat((std::to_string(i)+"##vMic").c_str(), ImVec2(42, absY/1.8), &bar_value[inputcounter], 0.0f, 1.0f, "%.2f")) {
 						if (connected)
-							set_channel_volume(i, bar_value[i]);
+							set_channel_volume(i, bar_value[inputcounter]);
 					};
+					inputcounter++;
 					ImGui::Dummy(ImVec2(0,32));
 					ImGui::PushFont(audiofont, 32);
 					//if (toggleButton("Dim", ImVec2((absX*0.2)*0.3, 40), master_bools[0])) { if (connected) {set_bool_state(0);}};
-					if (toggleButton("###"+std::to_string(i), ImVec2(0,0), phase_value[i])) {if (connected) set_phase_state(i);};
+					if (toggleButton("###Mic"+std::to_string(i), ImVec2(0,0), phase_value[i])) {if (connected) set_phase_state(i);};
 					ImGui::PopFont();
 					ImGui::EndGroup();
-					//if (i == inputs)
-					//	ImGui::Text("Outputs");
-					if (i < (inputs)-1)
+					ImGui::SameLine();
+				}
+				for (size_t i = 0; i < (devices[driver_indicator].digital_inputs); i++) {
+					ImGui::BeginGroup();
+					ImGui::Text("%s", (std::string("Digi ")+std::to_string(i+1)).c_str());
+					ImGui::Dummy(ImVec2(0,24));
+					if (ImGui::VFaderFloat((std::to_string(i)+"##vDigi").c_str(), ImVec2(42, absY/1.8), &bar_value[inputcounter], 0.0f, 1.0f, "%.2f")) {
+						if (connected)
+							set_channel_volume(i, bar_value[inputcounter]);
+					};
+					inputcounter++;
+					ImGui::Dummy(ImVec2(0,32));
+					ImGui::PushFont(audiofont, 32);
+					if (toggleButton("###Digi"+std::to_string(i), ImVec2(0,0), phase_value[i])) {if (connected) set_phase_state(i);};
+					ImGui::PopFont();
+					ImGui::EndGroup();
+					if (i < (devices[driver_indicator].digital_inputs)-1)
 						ImGui::SameLine();
 				}
+
 				ImGui::EndChild();
 			}
-			//ImGui::SetCursorPosY(absY*0.95);
+			ImGui::SetCursorPosY(absY*0.965);
+			ImGui::Text(VERSION_MIXID);
 			//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 			ImGui::End();
 
@@ -240,7 +261,7 @@ int main(int, char**)
 			ImGui::Begin("Monitor", nullptr, ImGuiWindowFlags_NoDecoration);
 			ImGui::SeparatorText("Connection");
 			
-			ImGui::Text("  Selected Driver: %s", items[driver_indicator]);
+			ImGui::Text("  Selected Driver: %s", devices[driver_indicator].name.c_str());
 			if (connected) {
 				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0,1.0,0.0,0.8));
 				ImGui::Text("               Connected");
@@ -257,7 +278,7 @@ int main(int, char**)
 			if (ImGui::Button(name.c_str(),ImVec2(ImGui::GetContentRegionAvail().x, 40))) {
 				connected = !connected;
 				if (connected) {
-					if (!driver_init(usb_id[driver_indicator])) {
+					if (!driver_init(devices[driver_indicator].usb_id)) {
 						connected = false;
 						ImGui::OpenPopup("No connection possible");
 					};
@@ -312,8 +333,27 @@ int main(int, char**)
 		if (show_another_window)
 		{
 			ImGui::Begin("Driver Select", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-			ImGui::Combo("Interface type", &driver_indicator, items, IM_ARRAYSIZE(items));
-			ImGui::Text("USB ID: 0x%04X", usb_id[driver_indicator]);
+	        
+	        //const char* combo_preview_value = items[item_selected_idx];
+	        if (ImGui::BeginCombo("Interface type", devices[driver_indicator].name.c_str()))
+	        {
+	            for (int n = 0; n < devices.size(); n++)
+	            {
+	                const bool is_selected = (driver_indicator == n);
+	                if (ImGui::Selectable(devices[n].name.c_str(), is_selected)) {
+	                    driver_indicator = n;
+	                    bar_value.clear();
+	                }
+
+	                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+	                if (is_selected)
+	                    ImGui::SetItemDefaultFocus();
+	            }
+	            ImGui::EndCombo();
+	        }
+
+			//ImGui::Combo("Interface type", &driver_indicator, items, IM_ARRAYSIZE(items));
+			ImGui::Text("USB ID: 0x%04X", devices[driver_indicator].usb_id);
 			ImGui::End();
 		}
 		if (show_routing)
@@ -379,6 +419,7 @@ int main(int, char**)
 	EMSCRIPTEN_MAINLOOP_END;
 #endif
 
+	driver_shutdown(); //just in case disconnect
 	// Cleanup
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();

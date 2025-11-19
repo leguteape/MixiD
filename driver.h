@@ -3,9 +3,49 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <unistd.h>
+#include "device_properties.h"
 
 static libusb_device_handle *devh = NULL;
 static bool driver_connected = false;
+
+int device_probe()
+{
+  // discover devices
+  libusb_device **list;
+  libusb_device *found = NULL;
+  libusb_context *tctx = NULL;
+  libusb_init(NULL);
+  ssize_t cnt = libusb_get_device_list(tctx   , &list);
+  ssize_t i = 0;
+  int err = 0;
+  if (cnt < 0) {
+    return -1;
+  }
+
+  int foundid = -1;
+
+  std::cout << "[Begin usb probe] size: " << cnt << "\n";
+  for (i = 0; i < cnt; i++) 
+  {
+      libusb_device *device = list[i];
+      libusb_device_descriptor desc = {0};
+      libusb_get_device_descriptor(device, &desc);
+      std::cout << "Vendor: " << std::hex << desc.idVendor << " - Product: " << std::hex << desc.idProduct << '\n';
+      for (size_t d = 0; d < devices.size(); d++)
+      {
+        if (desc.idVendor != 0x2708) {
+          continue;
+        }
+        if (devices[d].usb_id == desc.idProduct) {
+            foundid = d;
+            break;
+        }
+      }
+  }
+  libusb_free_device_list(list, 1);
+  return foundid;
+}
+
 
 //--------
 // First is for Left channels, Second for Right
@@ -175,6 +215,8 @@ int driver_init(uint16_t deviceid)
 void driver_shutdown() 
 {
   driver_connected = false;
+  if (!devh)
+    return;
   libusb_reset_device(devh);
   libusb_release_interface(devh, 0);
   libusb_attach_kernel_driver(devh,0);
