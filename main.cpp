@@ -33,23 +33,23 @@
 static int driver_indicator = 0;
 static bool connected = false;
 std::vector<float> levels = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
-std::vector <float> bar_value;
-static bool phase_value[10] = {false,false,false,false,false,false,false,false,false,false};
-static bool master_bools[6] = {false,false,false,false,false,false}; // Dummy storage selection storage
+static std::vector <float> bar_value;
+static std::vector <bool> phase_value;
+static std::vector <bool> master_bools = {false,false,false,false,false,false};
 
 static void glfw_error_callback(int error, const char* description)
 {
 	fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-bool toggleButton(std::string name, ImVec2 size, bool &value) {
+bool toggleButton(std::string name, ImVec2 size, std::vector<bool>::reference value) {
 	int mastercol = 0;
 	bool state = false;
 	if (value){
 		ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered)); mastercol++;
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.1,0.1,0.1,1.0)); mastercol++;
 	}
-	if (ImGui::Button(name.c_str(), size)) {state = true; value = !value;};
+	if (ImGui::Button(name.c_str(), size)) {state = true; value.flip();};
 	
 	if (mastercol > 0)
 		ImGui::PopStyleColor(mastercol);
@@ -149,8 +149,10 @@ int main(int, char**)
 	setup_devices();
 	//Probe for known usb devices
 	int _dev = device_probe();
-	if (_dev >= 0)
+	if (_dev >= 0) {
 		driver_indicator = _dev;
+	    bar_value.clear();
+	}
 
 	// Main loop
 #ifdef __EMSCRIPTEN__
@@ -202,10 +204,10 @@ int main(int, char**)
 
 			if (connected || test) { //Main controls
 				if (bar_value.size() == 0) {
-					for (size_t i = 0; i < devices[driver_indicator].mic_inputs; i++)
+					for (size_t i = 0; i < devices[driver_indicator].mic_inputs+devices[driver_indicator].digital_inputs; i++) {
 						bar_value.push_back(0.0f);
-					for (size_t i = 0; i < devices[driver_indicator].digital_inputs; i++)
-						bar_value.push_back(0.0f);
+						phase_value.push_back(false);
+					}
 				}
 				ImGui::SetNextWindowPos(ImVec2(absX*0.1,absY*0.1));
 				ImGui::SetNextWindowSize(ImVec2(absX*0.6, absY*0.8));
@@ -222,11 +224,11 @@ int main(int, char**)
 						if (connected)
 							set_channel_volume(i, bar_value[inputcounter]);
 					};
-					inputcounter++;
 					ImGui::Dummy(ImVec2(0,32));
 					ImGui::PushFont(audiofont, 32);
 					//if (toggleButton("Dim", ImVec2((absX*0.2)*0.3, 40), master_bools[0])) { if (connected) {set_bool_state(0);}};
-					if (toggleButton("###Mic"+std::to_string(i), ImVec2(0,0), phase_value[i])) {if (connected) set_phase_state(i);};
+					if (toggleButton("###MicPhase"+std::to_string(i), ImVec2(0,0), phase_value[inputcounter])) {if (connected) set_phase_state(inputcounter);};
+					inputcounter++;
 					ImGui::PopFont();
 					ImGui::EndGroup();
 					ImGui::SameLine();
@@ -239,10 +241,10 @@ int main(int, char**)
 						if (connected)
 							set_channel_volume(i, bar_value[inputcounter]);
 					};
-					inputcounter++;
 					ImGui::Dummy(ImVec2(0,32));
 					ImGui::PushFont(audiofont, 32);
-					if (toggleButton("###Digi"+std::to_string(i), ImVec2(0,0), phase_value[i])) {if (connected) set_phase_state(i);};
+					if (toggleButton("###DigiPhase"+std::to_string(i), ImVec2(0,0), phase_value[inputcounter])) {if (connected) set_phase_state(inputcounter);};
+					inputcounter++;
 					ImGui::PopFont();
 					ImGui::EndGroup();
 					if (i < (devices[driver_indicator].digital_inputs)-1)
