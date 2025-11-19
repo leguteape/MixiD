@@ -30,9 +30,12 @@ int device_probe()
       libusb_device *device = list[i];
       libusb_device_descriptor desc = {0};
       libusb_get_device_descriptor(device, &desc);
-      std::cout << "Vendor: " << desc.idVendor << " - Product: " << desc.idProduct << '\n';
+      std::cout << "Vendor: " << std::hex << desc.idVendor << " - Product: " << std::hex << desc.idProduct << '\n';
       for (size_t d = 0; d < devices.size(); d++)
       {
+        if (desc.idVendor != 0x2708) {
+          continue;
+        }
         if (devices[d].usb_id == desc.idProduct) {
             foundid = d;
             break;
