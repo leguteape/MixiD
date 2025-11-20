@@ -55,6 +55,16 @@ void setup_devices()
 	iD22.inserts = 2;
 	devices.push_back(iD22);
 
+	struct device_properties iD24;
+	iD24.name = "iD24";
+	iD24.usb_id = 0x000d;
+	iD24.mic_inputs = 2;
+	iD24.digital_inputs = 10;
+	iD24.outputs = 4;
+	iD24.digital_outputs = 14;
+	iD24.inserts = 2;
+	devices.push_back(iD24);
+
 	struct device_properties iD44;
 	iD44.name = "iD44";
 	iD44.usb_id = 0x0005;
