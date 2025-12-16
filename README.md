@@ -10,11 +10,12 @@ Since there is no official support by Audient for the iD interfaces on Linux, Mi
 
 ## Notes and To Do
 
-* Currently only tested on iD14 and iD14 MKII, but should work with every iD series interface.
-  * Support list can be found [here](https://github.com/TheOnlyJoey/MixiD/wiki/Support-List)
-  * Please add your USB iD and amount of input/output details in an Issue so it can be added and verified in an update.
-* More usb ID's need to be added together with proper channel information to support all remaining iD interfaces.
-   * The protocol is mostly figured out, just needs verification/testing
+* Support list can be found [here](https://github.com/TheOnlyJoey/MixiD/wiki/Support-List)
+  * As of 17 December 2025 all known iD interfaces should be functional to some degree
+  * If a new device gets released, please add your USB iD and amount of input/output details in an [Issue](https://github.com/TheOnlyJoey/MixiD/issues) so it can be added and verified in an update.
+* The protocol is mostly figured out, just needs verification/testing
+   * Reading information back from the interfaces is still in progress.
+   * Things like VU meters and some switches/modes have yet to be implemented
 * Technically works on macOS
    * Should probably not use on Windows
 * UI needs some additional work
@@ -68,6 +69,13 @@ All done!
 
 ## Version History
 
+* 0.1.6
+   * All known iD usb-id's are now known and implemented, MixiD should work on every known interface!
+* 0.1.4
+    * Now probes usb devices based on the supported id list and selects if possible
+    * Auto disconnects and re-attach to kernel when quitting the application (no more having to manually disconnect before closing)
+    * Now should properly set all faders depending on the individual device inputs
+    * Small UI Fixes
 * 0.1
     * Initial Release based around the iD14 and iD14 MKII with most essential features implemented.
 
